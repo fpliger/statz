@@ -37,6 +37,14 @@
             max-height: 700px;
             overflow-y:scroll;
         }
+
+      .method-section{
+          padding-bottom: 30px;
+      }
+
+      .view-section{
+          padding-top: 10px;
+      }
   </style>
 
   <body>
@@ -86,63 +94,125 @@
 
               <div class="table-responsive">
                 %for url, route in routes.items():
-                <h3 id="${url}">${route.get('url', url.replace('_', '/'))}
+                    <h1 id="${url}" class="page-header view-section">${route.get('url', url.replace('_', '/'))}
 
                     <span>
 
+                    <div class="btn-group">
+
+                        %for methname in route.get('methods', []):
+                        <button type="button" class="btn btn-default" onclick="$('#${url}_${methname}').toggle();">${methname}</button>
+                        %endfor
+
+                        %if route.get('calls', []):
+                        <button type="button" class="btn btn-default" onclick="$('#table_${url}').toggle();">Show/Hide</button>
+
+
+                      <div class="btn-group">
+                        <button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown">
+                          Dropdown
+                          <span class="caret"></span>
+                        </button>
+                        <ul class="dropdown-menu" role="menu">
+                            %for k in route:
+                                <li><a href="#">${k}</a></li>
+                            %endfor
+                        </ul>
+                      </div>
+
+                    %endif
+                    </div>
+                    </span>
+
+                </h1>
+
+                %for methname, info in route.get('methods', {}).items():
+                <div id="${url}_${methname}" class="bs-docs-section method-section">
+                    <h4>${methname} ${route.get('url', url.replace('_', '/'))}
+                        %if info.get('calls', []):
+                         <span class="badge" style="margin-left: 20px;">${info['calls'][-1]['response_type']}</span>
+                        %endif
+
+                        <span style="margin-left: 20px;">
+
                 <div class="btn-group">
 
-                    %for methname in route.get('methods', []):
-                    <button type="button" class="btn btn-default">${methname}</button>
-                    %endfor
-
-                    %if route.get('calls', []):
-                    <button type="button" class="btn btn-default" onclick="$('#table_${url}').toggle();">Show/Hide</button>
-
-
-                  <div class="btn-group">
-                    <button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown">
-                      Dropdown
-                      <span class="caret"></span>
-                    </button>
-                    <ul class="dropdown-menu" role="menu">
-                        %for k in route:
-                            <li><a href="#">${k}</a></li>
-                        %endfor
-                    </ul>
-                  </div>
-
-                %endif
+                    % if info.get('code', ''):
+                    <button type="button" class="btn btn-default" onclick="$('#${url}_${methname}_code').toggle();">Code</button>
+                    % endif
+                    %if info.get('calls', []):
+                    <button type="button" class="btn btn-default" onclick="$('#table_${url}_${methname}_params').toggle();">Parameters</button>
+                    <button type="button" class="btn btn-default" onclick="$('#table_${url}_${methname}_headers').toggle();">Headers</button>
+                    <button type="button" class="btn btn-default" onclick="$('#table_${url}_${methname}_resp_obj').toggle();">Response Object</button>
+                    <button type="button" class="btn btn-default" onclick="$('#table_${url}_${methname}').toggle();">Calls</button>
+                    % endif
                 </div>
                 </span>
+                    </h4>
 
-                </h3>
+                    <div id="${url}_${methname}_docstring">
+                        ${info.get('docstring', '---') | n}
+                    </div>
 
 
-                %if route.get('calls', []):
+                    <div id="${url}_${methname}_code" style="display:none;">
+                        <pre>
+                            <code class="python">
+                                ${info.get('code', '---')}
+                            </code>
+                        </pre>
+                    </div>
 
-                    <table id="table_${url}" class="table table-striped" style="display:none;">
-                      <thead>
+                     %if info.get('calls', []):
 
-                        <tr>
-                          <th>#</th>
-                            %for col in ['session', 'timestamp', 'duration', 'response_status', 'response_type', 'request_params', 'memory']:
-                                <th>${col}</th>
-                            %endfor
-                        </tr>
-                      </thead>
-                      <tbody>
-                        % for ind, call in enumerate(route.get('calls', [])):
-                        <tr>
-                          <td>${ind}</td>
-                           % for col in ['session', 'timestamp', 'duration', 'response_status', 'response_type', 'request_params', 'memory']:
-                          <td>${fmt(col, call.get(col, '???'))}</td>
-                           % endfor
-                        </tr>
-                        %endfor
-                      </tbody>
-                    </table>
+                         <div id="table_${url}_${methname}_params"  style="display:none;">
+                            <h4>Parameters:</h4>
+
+                             ${render_key_value_table("inner_table_" + url + "_" + methname + "_params", info['calls'][-1]['request_params'], style="") | n}
+                         </div>
+
+                         <div id="table_${url}_${methname}_headers"  style="display:none;">
+                            <h4>Headers:</h4>
+                            ${render_key_value_table("inner_table_" + url + "_" + methname + "_headers", info['calls'][-1]['headers'], style="") | n}
+                         </div>
+
+                         <div id="table_${url}_${methname}_resp_obj"  style="display:none;">
+                            <h4>Response Object:</h4>
+                            ${render_key_value_table("inner_table_" + url + "_" + methname + "_resp_obj", info['calls'][-1]['response_json_body'], style="") | n}
+                         </div>
+
+                         <div id="table_${url}_${methname}"  style="display:none;">
+                            <h4>Most Recent Calls:</h4>
+
+                            <table id="inner_table_${url}_${methname}" class="table table-striped">
+                              <thead>
+
+                                <tr>
+                                  <th>#</th>
+                                    %for col in ['session', 'timestamp', 'duration', 'response_status', 'response_type', 'memory']:
+                                        <th>${col}</th>
+                                    %endfor
+                                </tr>
+                              </thead>
+                              <tbody>
+                                % for ind, call in enumerate(info.get('calls', [])):
+                                <tr>
+                                  <td>${ind}</td>
+                                   % for col in ['session', 'timestamp', 'duration', 'response_status', 'response_type', 'memory']:
+                                  <td>${fmt(col, call.get(col, '???'))}</td>
+                                   % endfor
+                                </tr>
+                                %endfor
+                              </tbody>
+                            </table>
+                          </div>
                    %endif
+
+                </div>
+
+                %endfor
+
+
                   %endfor
               </div>
             </div>

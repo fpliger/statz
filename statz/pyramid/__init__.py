@@ -15,13 +15,17 @@ from pyramid.settings import asbool
 from pyramid.events import NewRequest, NewResponse
 from pyramid.events import subscriber
 
+from webhelpers.html import converters
+
 from py.path import local
 
 import storages
 import loggers
 
+from pprint import pprint
+
 SETTINGS_PREFIX = 'statz.'
-STATIC_PATH = '/Users/fpliger/dev/repos/statz/statz/pyramid/static' #'cornicestats:static/'
+STATIC_PATH = '/Users/fpliger/dev/repos/statz/statz/pyramid/static'
 DEFAULT_LOGGERS = 'MemoryLogger, TrafficLogger'
 
 default_settings = [
@@ -95,6 +99,47 @@ class Tracker(object):
         start saving any statistics of those. This should provide a complete
         list of routes configured and registered at the config object.
         """
+
+        #routes = set()
+
+        # Before getting everything from Pyramid let's check if user is using
+        # cornice and get info from there as it's more complete and we can
+        # actually have access to more details (like views doc strings to use
+        # as methods documentation
+        try:
+            from cornice import service
+            import inspect
+
+            for serv in service.SERVICES:
+                path = serv.path
+                npath = self.normalize_url(path)
+                path_stats = self.storage.load(npath)
+
+                if not 'url' in path_stats:
+                    path_stats['url'] = path
+
+                psts = path_stats['methods'] = {}
+                for (method, view, args) in serv.definitions:
+                    foo = getattr(args['klass'], view)
+                    docstring = converters.format_paragraphs(
+                                inspect.getdoc(foo), True
+                            )
+
+                    psts[method] = {
+                        'docstring': docstring,
+                        'callable': '%s.%s' % (args['klass'], view),
+                        'code': inspect.getsource(foo),
+                        'calls': []
+                    }
+
+                self.storage.save(npath, path_stats)
+
+                self.stats[npath] = path_stats
+
+        except ImportError:
+            # in this case cornice is not installed. We cannot use it
+            pass
+
         introspector = config.introspector
 
         routes = introspector.get_category('routes')
@@ -108,23 +153,31 @@ class Tracker(object):
                 # JsonStorages
                 npath = self.normalize_url(path)
 
-                # load any previously saved stats for this route or initialize
-                # a new stats dictionary
-                path_stats = self.storage.load(npath)
+                if npath not in path_stats:
 
-                # it url is not registered for this routes it means it's the
-                # the first time we register it. So we need to configure it's
-                # url and save it for the next time
-                if not 'url' in path_stats:
-                    path_stats['methods'] = [
-                        rel['request_methods'] for rel in x['related'] \
-                        if rel['request_methods']
-                    ]
+                    # load any previously saved stats for this route or initialize
+                    # a new stats dictionary
+                    path_stats = self.storage.load(npath)
 
-                    path_stats['url'] = path
-                    self.storage.save(path, path_stats)
+                    # it url is not registered for this routes it means it's the
+                    # the first time we register it. So we need to configure it's
+                    # url and save it for the next time
+                    path_stats['methods'] = {}
+                    if not 'url' in path_stats:
+                        path_stats['methods'] = {}
+                        for rel in x['related']:
+                            if rel['request_methods']:
+                                path_stats['methods'][rel['request_methods']] = {
+                                    'code':'',
+                                    'docstring': '',
+                                    'callable': '',
+                                    'calls': []
+                                }
 
-                self.stats[npath] = path_stats
+                        path_stats['url'] = path
+                        self.storage.save(npath, path_stats)
+
+                    self.stats[npath] = path_stats
 
             self.loaded_routes = True
 
@@ -149,7 +202,8 @@ class Tracker(object):
 
         return url
 
-    def normalize_url(self, url):
+    @staticmethod
+    def normalize_url(url):
         """
         Normalizes the url path stripping annoying characters [that are not
         filename and html id friendly]
@@ -171,7 +225,6 @@ class Tracker(object):
         if not self.loaded_routes:
             self.load_routes_from_config(event.request.registry)
 
-
         req = event.request
         _id = repr(req)
         if _id in self.stats:
@@ -187,6 +240,7 @@ class Tracker(object):
                 "method": req.method,
                 "timestamp": time.time(),
                 "duration": -1,
+                'headers': dict(req.headers),
             }
             self._handle_new_request(event, call_stats)
             self.stats[_id] = call_stats
@@ -199,30 +253,38 @@ class Tracker(object):
         _id = repr(event.request)
 
         url = self.get_request_path(event.request)
-
+        nurl = self.normalize_url(url)
         if self.take_path(url):
             call_stats = self.stats[_id]
-            path_stats = self.stats.get(url, None)
+            meth = call_stats['method']
+            path_stats = self.stats.get(nurl, None)
 
             if path_stats is None:
-                path_stats = self.storage.load(url)
+                path_stats = self.storage.load(nurl)
+                path_stats['url'] = url
+
+            if not meth in path_stats['methods']:
+                path_stats['methods'] = {
+                    meth: {
+                        'code':'',
+                        'docstring': 'PATH MISSED FROM AUTODISCOVER',
+                        'callable': '',
+                        'calls': [],
+                        'headers': '',
+                    },
+                }
 
             call_stats['duration'] = \
                     (time.time() - call_stats['timestamp']) * 1000
 
-            call_stats = self.stats[_id]
-
+            call_stats['response_json_body'] = event.response.json_body
             self._handle_new_response(event, call_stats)
-
-            calls = path_stats.get('calls', [])
+            calls = path_stats['methods'][meth]['calls']
             calls.append(call_stats)
+            path_stats['methods'][meth]['calls'] = calls
 
-            path_stats['calls'] = calls
-
-            url = self.normalize_url(url)
-            self.stats[url] = path_stats
-
-            self.storage.save(url, path_stats)
+            self.stats[nurl] = path_stats
+            self.storage.save(nurl, path_stats)
 
             return call_stats
 
@@ -243,7 +305,8 @@ class Board(object):
         statsdir = local(path)
         for jsonfile in statsdir.listdir('*.json'):
             with jsonfile.open('r') as fp:
-                self.routes[jsonfile.purebasename] = json.load(fp)
+                key = Tracker.normalize_url(jsonfile.purebasename)
+                self.routes[key] = json.load(fp)
 
     @view_config(
         route_name='statzboard',
@@ -266,6 +329,7 @@ class Board(object):
         return {
             'routes': self.routes,
             'fmt': fmt,
+            'render_key_value_table': render_key_value_table,
         }
 
     def export(self, path, exclude_keys=None):
@@ -273,9 +337,7 @@ class Board(object):
             exclude_keys = set()
         out = []
 
-        print 'excluding keys...', exclude_keys
         for k, v in self.routes.items():
-            print v.keys(), k
             calls = v.get('calls', [])
             upath = v.get('url', k.replace('_', '/'))
 
@@ -351,7 +413,49 @@ def includeme(config):
     config.add_static_view('statz/static', STATIC_PATH)
     config.add_route('statzboard', '/statzboard',)
 
-    #config.scan('statz.pyramid')
+    config.scan('statz.pyramid')
     config.introspection = introspection
 
+    print "Statz plugin enabled"
+
     # TODO: We should create a brand new application that self contains statz
+
+
+def render_key_value_table(id, values, klass="table table-striped", style="display:none;"):
+    templ = u"""
+<table id="%(id)s" class="%(klass)s" style="%(style)s">
+  <thead>
+
+    <tr>
+            <th>name</th>
+            <th>value</th>
+    </tr>
+  </thead>
+  <tbody>
+   %(values_)s
+  </tbody>
+</table>
+"""
+
+    templ_tr = u"""<tr>
+  <td>%s</td>
+  <td>%s</td>
+</tr>"""
+    values_ = u""
+
+    if not values:
+        values = {'no value': 'no value'}
+
+    elif isinstance(values, list) :
+        values = values[0]
+
+    for col, val in values.items():
+        values_ += templ_tr % (col, render_table_value(val))
+
+    table = templ % locals()
+
+    return table
+
+def render_table_value(val):
+    #TODO: make this function handle list values so it returns a summary version of the value
+    return val
