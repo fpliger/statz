@@ -159,20 +159,47 @@ class Tracker(object):
                     # it url is not registered for this routes it means it's the
                     # the first time we register it. So we need to configure it's
                     # url and save it for the next time
-                    path_stats['methods'] = {}
                     if not 'url' in path_stats:
-                        path_stats['methods'] = {}
-                        for rel in x['related']:
-                            if rel['request_methods']:
-                                path_stats['methods'][rel['request_methods']] = {
-                                    'code':'',
-                                    'docstring': '',
-                                    'callable': '',
-                                    'calls': []
-                                }
-
                         path_stats['url'] = path
-                        self.storage.save(npath, path_stats)
+
+                    if not 'methods' in path_stats:
+                        path_stats['methods'] = {}
+
+                    for rel in x['related']:
+                        foo = rel['callable']
+                        docstring = converters.format_paragraphs(
+                            inspect.getdoc(foo), True
+                        )
+
+                        try:
+                            source = inspect.getsource(foo)
+
+                        except TypeError:
+                            source = ''
+                        #import pdb
+                        #pdb.set_trace()
+                        if rel['request_methods']:
+                            path_stats['methods'][rel['request_methods']] = {
+                                'code':inspect.getsource(foo),
+                                'docstring': docstring,
+                                'callable': '',
+                                'calls': []
+                            }
+
+                        elif len(x['related']) == 1:
+                            # in this case there's no specific method specified
+                            # on this related. We can assume that this related
+                            # view is used for all verbs
+
+                            path_stats['methods']['*'] = {
+                                'code': source,
+                                'docstring': docstring,
+                                'callable': '',
+                                'calls': []
+                            }
+
+
+                    self.storage.save(npath, path_stats)
 
                     self.stats[npath] = path_stats
 
@@ -274,15 +301,16 @@ class Tracker(object):
             call_stats['duration'] = \
                     (time.time() - call_stats['timestamp']) * 1000
 
-            # TODO: Instead of actually handing a decode error it would me more
-            #       sense to register json responso only when it's a json like
-            #       response
-            try:
-                call_stats['response_json_body'] = event.response.json_body
+            # track response json_body if content-type is json
+            if 'json' in event.response.content_type:
+                try:
+                    call_stats['response_json_body'] = event.response.json_body
 
-            except json.JSONDecoder:
-                call_stats['response_json_body'] = '<error decoding json object>'
-                
+                except ValueError, e:
+                    call_stats['response_json_body'] = '<error decoding json object>'
+            else:
+                call_stats['response_json_body'] = 'n.a.'
+
             self._handle_new_response(event, call_stats)
             calls = path_stats['methods'][meth]['calls']
             calls.append(call_stats)
