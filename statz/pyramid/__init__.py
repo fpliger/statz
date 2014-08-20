@@ -29,15 +29,17 @@ STATIC_PATH = '/Users/fpliger/dev/repos/statz/statz/pyramid/static'
 DEFAULT_LOGGERS = 'MemoryLogger, TrafficLogger'
 
 default_settings = [
-    ('enabled', asbool, 'true'),
-    ('storage', str, './statz/'),
+    ('enabled', asbool, r'true'),
+    ('storage', str, r'./statz/'),
     ('loggers', str, DEFAULT_LOGGERS),
+    ('exclude_paths', str, r"^/static*"),
 ]
 
 class Tracker(object):
-    exclude_paths = set(["statz*", "static*"])
+    exclude_paths = set([r"^/statz*", r"^statz*"])
 
-    def __init__(self, storage=None, config=None, active_loggers_str=None):
+    def __init__(self, storage=None, config=None, active_loggers_str=None,
+                 exclude_paths=None):
         now = datetime.datetime.now()
         self.session = now.strftime('%Y%m%d%H%M%S')
 
@@ -45,11 +47,15 @@ class Tracker(object):
         self.loaded_routes = False
 
         self.activate_loggers(active_loggers_str)
-
         self.storage = storage or storages.MockStorage()
 
         if config:
             self.load_routes_from_config(config)
+
+        if exclude_paths:
+            paths = [x.strip() for x in exclude_paths.split(',')]
+            self.exclude_paths = set(paths)
+            self.exclude_paths = self.exclude_paths + set(Tracker.exclude_paths)
 
     def parse_loggers_str(self, loggers_config_str):
         """
@@ -82,9 +88,6 @@ class Tracker(object):
         statistics must be registred or not. Method uses regex.match to check
         matches of path and configured paths to exclude in 'exclude_paths'
         """
-        if path.startswith('/'):
-            path = path[1:]
-
         for p in self.exclude_paths:
             if re.match(p, path, re.M|re.I):
                 return False
@@ -112,26 +115,27 @@ class Tracker(object):
                 npath = self.normalize_url(path)
                 path_stats = self.storage.load(npath)
 
-                if not 'url' in path_stats:
-                    path_stats['url'] = path
+                if self.take_path(path):
+                    if not 'url' in path_stats:
+                        path_stats['url'] = path
 
-                psts = path_stats['methods'] = {}
-                for (method, view, args) in serv.definitions:
-                    foo = getattr(args['klass'], view)
-                    docstring = converters.format_paragraphs(
-                                inspect.getdoc(foo), True
-                            )
+                    psts = path_stats['methods'] = {}
+                    for (method, view, args) in serv.definitions:
+                        foo = getattr(args['klass'], view)
+                        docstring = converters.format_paragraphs(
+                                    inspect.getdoc(foo), True
+                                )
 
-                    psts[method] = {
-                        'docstring': docstring,
-                        'callable': '%s.%s' % (args['klass'], view),
-                        'code': inspect.getsource(foo),
-                        'calls': []
-                    }
+                        psts[method] = {
+                            'docstring': docstring,
+                            'callable': '%s.%s' % (args['klass'], view),
+                            'code': inspect.getsource(foo),
+                            'calls': []
+                        }
 
-                self.storage.save(npath, path_stats)
+                    self.storage.save(npath, path_stats)
 
-                self.stats[npath] = path_stats
+                    self.stats[npath] = path_stats
 
         except ImportError:
             # in this case cornice is not installed. We cannot use it
@@ -145,63 +149,64 @@ class Tracker(object):
                 # raw route path
                 path = x['introspectable']['pattern']
 
-                # normalized path used to save the eventual route json (if the
-                # configured storage don't support some url chars (like '/' for
-                # JsonStorages
-                npath = self.normalize_url(path)
+                if self.take_path(path):
 
-                if npath not in self.stats:
+                    # normalized path used to save the eventual route json (if the
+                    # configured storage don't support some url chars (like '/' for
+                    # JsonStorages
+                    npath = self.normalize_url(path)
 
-                    # load any previously saved stats for this route or initialize
-                    # a new stats dictionary
-                    path_stats = self.storage.load(npath)
+                    if npath not in self.stats:
 
-                    # it url is not registered for this routes it means it's the
-                    # the first time we register it. So we need to configure it's
-                    # url and save it for the next time
-                    if not 'url' in path_stats:
-                        path_stats['url'] = path
+                        # load any previously saved stats for this route or initialize
+                        # a new stats dictionary
+                        path_stats = self.storage.load(npath)
 
-                    if not 'methods' in path_stats:
-                        path_stats['methods'] = {}
+                        # it url is not registered for this routes it means it's the
+                        # the first time we register it. So we need to configure it's
+                        # url and save it for the next time
+                        if not 'url' in path_stats:
+                            path_stats['url'] = path
 
-                    for rel in x['related']:
-                        foo = rel['callable']
-                        docstring = converters.format_paragraphs(
-                            inspect.getdoc(foo), True
-                        )
+                        if not 'methods' in path_stats:
+                            path_stats['methods'] = {}
 
-                        try:
-                            source = inspect.getsource(foo)
+                        for rel in x['related']:
+                            foo = rel['callable']
+                            docstring = converters.format_paragraphs(
+                                inspect.getdoc(foo), True
+                            )
 
-                        except TypeError:
-                            source = ''
-                        #import pdb
-                        #pdb.set_trace()
-                        if rel['request_methods']:
-                            path_stats['methods'][rel['request_methods']] = {
-                                'code':inspect.getsource(foo),
-                                'docstring': docstring,
-                                'callable': '',
-                                'calls': []
-                            }
+                            try:
+                                source = inspect.getsource(foo)
 
-                        elif len(x['related']) == 1:
-                            # in this case there's no specific method specified
-                            # on this related. We can assume that this related
-                            # view is used for all verbs
+                            except TypeError:
+                                source = ''
 
-                            path_stats['methods']['*'] = {
-                                'code': source,
-                                'docstring': docstring,
-                                'callable': '',
-                                'calls': []
-                            }
+                            if rel['request_methods']:
+                                path_stats['methods'][rel['request_methods']] = {
+                                    'code':inspect.getsource(foo),
+                                    'docstring': docstring,
+                                    'callable': '',
+                                    'calls': []
+                                }
+
+                            elif len(x['related']) == 1:
+                                # in this case there's no specific method specified
+                                # on this related. We can assume that this related
+                                # view is used for all verbs
+
+                                path_stats['methods']['*'] = {
+                                    'code': source,
+                                    'docstring': docstring,
+                                    'callable': '',
+                                    'calls': []
+                                }
 
 
-                    self.storage.save(npath, path_stats)
+                        self.storage.save(npath, path_stats)
 
-                    self.stats[npath] = path_stats
+                        self.stats[npath] = path_stats
 
             self.loaded_routes = True
 
@@ -288,6 +293,9 @@ class Tracker(object):
                 path_stats['url'] = url
 
             if not meth in path_stats['methods']:
+                if "*" in path_stats:
+                    meth = '*'
+
                 path_stats['methods'] = {
                     meth: {
                         'code':'',
