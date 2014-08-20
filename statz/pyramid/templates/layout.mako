@@ -44,7 +44,7 @@
       }
 
       .view-section{
-          padding-top: 10px;
+          padding-top: 50px;
       }
   </style>
 
