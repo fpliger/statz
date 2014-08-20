@@ -274,7 +274,15 @@ class Tracker(object):
             call_stats['duration'] = \
                     (time.time() - call_stats['timestamp']) * 1000
 
-            call_stats['response_json_body'] = event.response.json_body
+            # TODO: Instead of actually handing a decode error it would me more
+            #       sense to register json responso only when it's a json like
+            #       response
+            try:
+                call_stats['response_json_body'] = event.response.json_body
+
+            except json.JSONDecoder:
+                call_stats['response_json_body'] = '<error decoding json object>'
+                
             self._handle_new_response(event, call_stats)
             calls = path_stats['methods'][meth]['calls']
             calls.append(call_stats)
