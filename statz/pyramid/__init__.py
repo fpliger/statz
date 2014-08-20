@@ -99,9 +99,6 @@ class Tracker(object):
         start saving any statistics of those. This should provide a complete
         list of routes configured and registered at the config object.
         """
-
-        #routes = set()
-
         # Before getting everything from Pyramid let's check if user is using
         # cornice and get info from there as it's more complete and we can
         # actually have access to more details (like views doc strings to use
@@ -153,7 +150,7 @@ class Tracker(object):
                 # JsonStorages
                 npath = self.normalize_url(path)
 
-                if npath not in path_stats:
+                if npath not in self.stats:
 
                     # load any previously saved stats for this route or initialize
                     # a new stats dictionary
