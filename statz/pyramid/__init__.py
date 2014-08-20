@@ -416,7 +416,7 @@ def includeme(config):
     config.scan('statz.pyramid')
     config.introspection = introspection
 
-    print "Statz plugin enabled"
+    print "Statz plugin active"
 
     # TODO: We should create a brand new application that self contains statz
 
