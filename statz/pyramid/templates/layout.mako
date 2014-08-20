@@ -16,7 +16,7 @@
     <link href="/statz/static/bootstrap/css/bootstrap.min.css" rel="stylesheet">
 
     <!-- Custom styles for this template -->
-    <link href="dashboard.css" rel="stylesheet">
+    <link href="/statz/static/css/dashboard.css" rel="stylesheet">
 
     <!-- Just for debugging purposes. Don't actually copy these 2 lines! -->
     <!--[if lt IE 9]><script src="../../assets/js/ie8-responsive-file-warning.js"></script><![endif]-->
@@ -39,7 +39,8 @@
         }
 
       .method-section{
-          padding-bottom: 30px;
+          padding-bottom: 20px;
+          padding-top: 40px;
       }
 
       .view-section{
@@ -74,7 +75,7 @@
       </div>
     </div>
 
-    <div class="container-fluid">
+    <div class="container-fluid main">
       <div class="row" style="margin-top: 60px;">
         <div class="col-md-3">
           <ul class="nav nav-sidebar affix">
@@ -101,7 +102,7 @@
                     <div class="btn-group">
 
                         %for methname in route.get('methods', []):
-                        <button type="button" class="btn btn-default" onclick="$('#${url}_${methname}').toggle();">${methname}</button>
+                        <a type="button" class="btn btn-default" href="#${url}_${methname}">${methname}</a>
                         %endfor
 
                         %if route.get('calls', []):
@@ -224,7 +225,7 @@
     <!-- Bootstrap core JavaScript
     ================================================== -->
     <!-- Placed at the end of the document so the pages load faster -->
-    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
+    <script src="/statz/static/js/jquery-1.10.2.min.js"></script>
     <script src="/statz/static/bootstrap/js/bootstrap.min.js"></script>
   </body>
 </html>
