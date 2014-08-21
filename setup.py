@@ -30,6 +30,9 @@ setup(
         ],
     install_requires=[
         'pyramid',
+        'pyramid_mako',
+        'webhelpers',
+        'py',
     ],
     extras_require = {
       'testing': 'pytest',
