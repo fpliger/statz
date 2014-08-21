@@ -53,25 +53,28 @@ Quick Start
 
 - Create a virtualenv::
 
-  $ VENV=$(pwd)/venv # just set the path to our virtualenv
-  $ virtualenv --python=python2.7 $VENV
+  >> virtualenv --system-site-packages ./statzenv
 
 - Activate the virtual env::
 
-  $ source $VENV/bin/activate
+  >> source ./statzenv/bin/activate
 
 - Install Pyramid into the virtualenv::
 
-  $ pip intall pyramid
+  >> pip install pyramid
 
 - Clone the ``statz`` trunk::
 
-  $ git clone https://github.com/fpliger/statz.git
+  >> git clone https://github.com/fpliger/statz.git
 
 - Install the ``statz`` trunk into the virtualenv::
 
-  $ cd statz
-  $ python setup.py develop
+  >> cd statz
+  >> python setup.py develop
+
+- Create your amazing pyramid application!! If you don't have one yet you can use the demo one :-)
+
+  >> cd statz/demo
 
 - Include statz.pyramid in your project pyramid file adding 'statz.pyramid' to your includes list and
 adding the statz.storage configuraiton. For example::
