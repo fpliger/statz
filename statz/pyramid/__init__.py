@@ -4,6 +4,7 @@ import time
 import json
 import re
 import datetime
+import inspect
 
 from pyramid.events import subscriber
 from pyramid.events import BeforeRender
@@ -108,7 +109,6 @@ class Tracker(object):
         # as methods documentation
         try:
             from cornice import service
-            import inspect
 
             for serv in service.SERVICES:
                 path = serv.path
