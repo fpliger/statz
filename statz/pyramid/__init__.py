@@ -196,7 +196,7 @@ class Tracker(object):
                                 # on this related. We can assume that this related
                                 # view is used for all verbs
 
-                                path_stats['methods']['*'] = {
+                                path_stats['methods']['ALL'] = {
                                     'code': source,
                                     'docstring': docstring,
                                     'callable': '',
@@ -237,9 +237,11 @@ class Tracker(object):
         Normalizes the url path stripping annoying characters [that are not
         filename and html id friendly]
         """
-        to_clean = [('}', ''), ('/', '_'), ('{', '_')]
+        to_clean = [('}', ''), ('/', '_'), ('{', '_'), ('*', '<all>')]
         if url.startswith('/'):
             url = url[1:]
+            if not url:
+                url = 'ROOT'
 
         for x, y in to_clean:
             url = url.replace(x, y)
@@ -293,8 +295,8 @@ class Tracker(object):
                 path_stats['url'] = url
 
             if not meth in path_stats['methods']:
-                if "*" in path_stats:
-                    meth = '*'
+                if 'ALL' in path_stats:
+                    meth = 'ALL'
 
                 path_stats['methods'] = {
                     meth: {
