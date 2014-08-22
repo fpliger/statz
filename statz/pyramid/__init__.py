@@ -295,18 +295,19 @@ class Tracker(object):
                 path_stats['url'] = url
 
             if not meth in path_stats['methods']:
-                if 'ALL' in path_stats:
+                if 'ALL' in path_stats['methods']:
                     meth = 'ALL'
 
-                path_stats['methods'] = {
-                    meth: {
-                        'code':'',
-                        'docstring': 'PATH MISSED FROM AUTODISCOVER',
-                        'callable': '',
-                        'calls': [],
-                        'headers': '',
-                    },
-                }
+                if not path_stats.get('methods', {}):
+                    path_stats['methods'] = {
+                        meth: {
+                            'code':'',
+                            'docstring': 'PATH MISSED FROM AUTODISCOVER',
+                            'callable': '',
+                            'calls': [],
+                            'headers': '',
+                        },
+                    }
 
             call_stats['duration'] = \
                     (time.time() - call_stats['timestamp']) * 1000
@@ -322,6 +323,7 @@ class Tracker(object):
                 call_stats['response_json_body'] = 'n.a.'
 
             self._handle_new_response(event, call_stats)
+
             calls = path_stats['methods'][meth]['calls']
             calls.append(call_stats)
             path_stats['methods'][meth]['calls'] = calls
