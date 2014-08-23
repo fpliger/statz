@@ -33,6 +33,7 @@ setup(
         'pyramid_mako',
         'webhelpers',
         'py',
+        'pygments'
     ],
     extras_require = {
       'testing': 'pytest',
