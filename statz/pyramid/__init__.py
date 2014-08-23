@@ -253,9 +253,9 @@ class Tracker(object):
             # in this case cornice is not installed. We cannot use it
             pass
 
+        # Parse all routes registered directly from the pyramid config object
         introspector = config.introspector
         routes = introspector.get_category('routes')
-
         if routes:
             for x in routes:
                 self.load_route(x)
