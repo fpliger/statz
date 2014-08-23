@@ -85,4 +85,3 @@ def test_parse_settings():
     dsettings['statz.loggers'] = 'AnyNewTestLogger'
     parsed = pyramid.parse_settings(settings)
     assert parsed == dsettings
-

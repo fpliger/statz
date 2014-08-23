@@ -225,18 +225,7 @@ class Tracker(object):
                 # Add the path to the current global live stats
                 self.stats[npath] = path_stats
 
-    def load_routes_from_config(self, config):
-        """
-        Receives a pyramid config object and infers its configured routes
-        from it's introspector attributes. Routes found are initialized and
-        pre-saved (at the configured instance storage object) before actually
-        start saving any statistics of those. This should provide a complete
-        list of routes configured and registered at the config object.
-        """
-        # Before getting everything from Pyramid let's check if user is using
-        # cornice and get info from there as it's more complete and we can
-        # actually have access to more details (like views doc strings to use
-        # as methods documentation
+    def load_cornice_routes(self):
         try:
             from cornice import service
 
@@ -253,6 +242,7 @@ class Tracker(object):
             # in this case cornice is not installed. We cannot use it
             pass
 
+    def load_pyramid_standard_routes(self, config):
         # Parse all routes registered directly from the pyramid config object
         introspector = config.introspector
         routes = introspector.get_category('routes')
@@ -261,6 +251,22 @@ class Tracker(object):
                 self.load_route(x)
 
             self.loaded_routes = True
+
+    def load_routes_from_config(self, config):
+        """
+        Receives a pyramid config object and infers its configured routes
+        from it's introspector attributes. Routes found are initialized and
+        pre-saved (at the configured instance storage object) before actually
+        start saving any statistics of those. This should provide a complete
+        list of routes configured and registered at the config object.
+        """
+        # Before getting everything from Pyramid let's check if user is using
+        # cornice and get info from there as it's more complete and we can
+        # actually have access to more details (like views doc strings to use
+        # as methods documentation
+        self.load_cornice_routes()
+
+        self.load_pyramid_standard_routes(config)
 
     def get_request_path(self, request, normalize=False):
         """
