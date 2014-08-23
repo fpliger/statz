@@ -99,6 +99,121 @@ class Tracker(object):
 
         return True
 
+    def parse_cornice_service(self, url, serv, path_stats = None):
+        """
+        Parses a cornice service definition and returns a dict with information
+        about the service:
+
+        Parameters
+
+        - url       ::: url route of the service
+        - service   ::: cornice service
+
+        Output:
+
+        a dict with thefollowing structure:
+
+        - url       ::: url route of the service
+        - methods   ::: dict with service defined methods as keys and a dict
+                        with the following structure as values:
+
+                        - callable  ::: view python callable object
+                        - code      ::: callable source code prettified and
+                                        converted to html friendly syntax with
+                                        pygments
+                        - docstring ::: callable docstring
+                        - calls     ::: list that contains tracked calls for
+                                        that specific METHOD and URL
+        """
+        if path_stats is None:
+            path_stats = self.storage.load(url)
+
+        if self.take_path(url):
+            if not 'url' in path_stats:
+                path_stats['url'] = path
+
+            psts = path_stats['methods'] = {}
+            for (method, view, args) in serv.definitions:
+                foo = getattr(args['klass'], view)
+                docstring = converters.format_paragraphs(
+                            inspect.getdoc(foo), True
+                        )
+
+                source = inspect.getsource(foo)
+                source = highlight(source, PythonLexer(), HtmlFormatter())
+
+                psts[method] = {
+                    'docstring': docstring,
+                    'callable': '%s.%s' % (args['klass'], view),
+                    'code': source,
+                    'calls': []
+                }
+
+        return
+
+    def load_route(self, route):
+        path = route['introspectable']['pattern']
+
+        if self.take_path(path):
+
+            # normalized path used to save the eventual route json (if the
+            # configured storage don't support some url chars (like '/' for
+            # JsonStorages
+            npath = self.normalize_url(path)
+
+            if npath not in self.stats:
+
+                # load any previously saved stats for this route or initialize
+                # a new stats dictionary
+                path_stats = self.storage.load(npath)
+
+                # it url is not registered for this routes it means it's the
+                # the first time we register it. So we need to configure it's
+                # url and save it for the next time
+                if not 'url' in path_stats:
+                    path_stats['url'] = path
+
+                if not 'methods' in path_stats:
+                    path_stats['methods'] = {}
+
+
+                code = 'print "Hello World"'
+
+                for rel in route['related']:
+                    foo = rel['callable']
+                    docstring = converters.format_paragraphs(
+                        inspect.getdoc(foo), True
+                    )
+
+                    try:
+                        source = inspect.getsource(foo)
+                        source = highlight(source, PythonLexer(), HtmlFormatter())
+                    except TypeError:
+                        source = ''
+
+                    if rel['request_methods']:
+                        path_stats['methods'][rel['request_methods']] = {
+                            'code':inspect.getsource(foo),
+                            'docstring': docstring,
+                            'callable': '',
+                            'calls': []
+                        }
+
+                    elif len(route['related']) == 1:
+                        # in this case there's no specific method specified
+                        # on this related. We can assume that this related
+                        # view is used for all verbs
+
+                        path_stats['methods']['ALL'] = {
+                            'code': source,
+                            'docstring': docstring,
+                            'callable': '',
+                            'calls': []
+                        }
+
+                self.storage.save(npath, path_stats)
+                self.stats[npath] = path_stats
+
     def load_routes_from_config(self, config):
         """
         Receives a pyramid config object and infers its configured routes
@@ -117,31 +232,18 @@ class Tracker(object):
             for serv in service.SERVICES:
                 path = serv.path
                 npath = self.normalize_url(path)
-                path_stats = self.storage.load(npath)
 
                 if self.take_path(path):
-                    if not 'url' in path_stats:
-                        path_stats['url'] = path
+                    # Take previously saved stats for this specific service
+                    path_stats = self.storage.load(npath)
 
-                    psts = path_stats['methods'] = {}
-                    for (method, view, args) in serv.definitions:
-                        foo = getattr(args['klass'], view)
-                        docstring = converters.format_paragraphs(
-                                    inspect.getdoc(foo), True
-                                )
-
-                        source = inspect.getsource(foo)
-                        source = highlight(source, PythonLexer(), HtmlFormatter())
-
-                        psts[method] = {
-                            'docstring': docstring,
-                            'callable': '%s.%s' % (args['klass'], view),
-                            'code': source,
-                            'calls': []
-                        }
+                    # Parse the cornice service again to update service info
+                    # if there was any change to the code or docstrings
+                    self.parse_cornice_service(path, serv, path_stats)
 
                     self.storage.save(npath, path_stats)
 
+                    # Add the path to the current global live stats
                     self.stats[npath] = path_stats
 
         except ImportError:
@@ -149,74 +251,11 @@ class Tracker(object):
             pass
 
         introspector = config.introspector
-
         routes = introspector.get_category('routes')
+
         if routes:
             for x in routes:
-                # raw route path
-                path = x['introspectable']['pattern']
-
-                if self.take_path(path):
-
-                    # normalized path used to save the eventual route json (if the
-                    # configured storage don't support some url chars (like '/' for
-                    # JsonStorages
-                    npath = self.normalize_url(path)
-
-                    if npath not in self.stats:
-
-                        # load any previously saved stats for this route or initialize
-                        # a new stats dictionary
-                        path_stats = self.storage.load(npath)
-
-                        # it url is not registered for this routes it means it's the
-                        # the first time we register it. So we need to configure it's
-                        # url and save it for the next time
-                        if not 'url' in path_stats:
-                            path_stats['url'] = path
-
-                        if not 'methods' in path_stats:
-                            path_stats['methods'] = {}
-
-
-                        code = 'print "Hello World"'
-
-                        for rel in x['related']:
-                            foo = rel['callable']
-                            docstring = converters.format_paragraphs(
-                                inspect.getdoc(foo), True
-                            )
-
-                            try:
-                                source = inspect.getsource(foo)
-                                source = highlight(source, PythonLexer(), HtmlFormatter())
-                            except TypeError:
-                                source = ''
-
-                            if rel['request_methods']:
-                                path_stats['methods'][rel['request_methods']] = {
-                                    'code':inspect.getsource(foo),
-                                    'docstring': docstring,
-                                    'callable': '',
-                                    'calls': []
-                                }
-
-                            elif len(x['related']) == 1:
-                                # in this case there's no specific method specified
-                                # on this related. We can assume that this related
-                                # view is used for all verbs
-
-                                path_stats['methods']['ALL'] = {
-                                    'code': source,
-                                    'docstring': docstring,
-                                    'callable': '',
-                                    'calls': []
-                                }
-
-
-                        self.storage.save(npath, path_stats)
-
-                        self.stats[npath] = path_stats
+                self.load_route(x)
 
             self.loaded_routes = True
 
