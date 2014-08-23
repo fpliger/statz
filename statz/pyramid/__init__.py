@@ -25,6 +25,10 @@ import loggers
 
 from pprint import pprint
 
+from pygments import highlight
+from pygments.lexers import PythonLexer
+from pygments.formatters import HtmlFormatter
+
 SETTINGS_PREFIX = 'statz.'
 STATIC_PATH = '/Users/fpliger/dev/repos/statz/statz/pyramid/static'
 DEFAULT_LOGGERS = 'MemoryLogger, TrafficLogger'
@@ -126,10 +130,13 @@ class Tracker(object):
                                     inspect.getdoc(foo), True
                                 )
 
+                        source = inspect.getsource(foo)
+                        source = highlight(source, PythonLexer(), HtmlFormatter())
+
                         psts[method] = {
                             'docstring': docstring,
                             'callable': '%s.%s' % (args['klass'], view),
-                            'code': inspect.getsource(foo),
+                            'code': source,
                             'calls': []
                         }
 
@@ -171,6 +178,9 @@ class Tracker(object):
                         if not 'methods' in path_stats:
                             path_stats['methods'] = {}
 
+
+                        code = 'print "Hello World"'
+
                         for rel in x['related']:
                             foo = rel['callable']
                             docstring = converters.format_paragraphs(
@@ -179,7 +189,7 @@ class Tracker(object):
 
                             try:
                                 source = inspect.getsource(foo)
-
+                                source = highlight(source, PythonLexer(), HtmlFormatter())
                             except TypeError:
                                 source = ''
 
@@ -370,6 +380,8 @@ class Board(object):
                 return "%.3f s" % val
 
             return val
+
+        print HtmlFormatter().get_style_defs('.highlight')
 
         return {
             'routes': self.routes,

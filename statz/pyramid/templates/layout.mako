@@ -157,11 +157,8 @@
 
 
                     <div id="${url}_${methname}_code" style="display:none;">
-                        <pre>
-                            <code class="python">
-                                ${info.get('code', '---')}
-                            </code>
-                        </pre>
+                        <h4>Related View Code:</h4>
+                        ${info.get('code', '---') | n}
                     </div>
 
                      %if info.get('calls', []):
