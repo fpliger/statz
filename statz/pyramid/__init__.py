@@ -125,14 +125,22 @@ class Tracker(object):
                         - calls     ::: list that contains tracked calls for
                                         that specific METHOD and URL
         """
-        if path_stats is None:
-            path_stats = self.storage.load(url)
+        url = serv.path
+        nurl = self.normalize_url(url)
 
         if self.take_path(url):
+
+            # load any previously saved stats for this route or initialize
+            # a new stats dictionary
+            path_stats = self.storage.load(nurl)
+
             if not 'url' in path_stats:
                 path_stats['url'] = path
 
-            psts = path_stats['methods'] = {}
+            if not 'methods' in path_stats:
+                path_stats['methods'] = {}
+
+            psts = path_stats['methods']
             for (method, view, args) in serv.definitions:
                 foo = getattr(args['klass'], view)
                 docstring = converters.format_paragraphs(
@@ -149,7 +157,11 @@ class Tracker(object):
                     'calls': []
                 }
 
-        return
+                self.storage.save(nurl, path_stats)
+
+                # Add the path to the current global live stats
+                self.stats[nurl] = path_stats
+
 
     def load_route(self, route):
         path = route['introspectable']['pattern']
@@ -175,9 +187,6 @@ class Tracker(object):
 
                 if not 'methods' in path_stats:
                     path_stats['methods'] = {}
-
-
-                code = 'print "Hello World"'
 
                 for rel in route['related']:
                     foo = rel['callable']
@@ -212,6 +221,8 @@ class Tracker(object):
                         }
 
                 self.storage.save(npath, path_stats)
+
+                # Add the path to the current global live stats
                 self.stats[npath] = path_stats
 
     def load_routes_from_config(self, config):
@@ -234,17 +245,9 @@ class Tracker(object):
                 npath = self.normalize_url(path)
 
                 if self.take_path(path):
-                    # Take previously saved stats for this specific service
-                    path_stats = self.storage.load(npath)
-
                     # Parse the cornice service again to update service info
                     # if there was any change to the code or docstrings
                     self.parse_cornice_service(path, serv, path_stats)
-
-                    self.storage.save(npath, path_stats)
-
-                    # Add the path to the current global live stats
-                    self.stats[npath] = path_stats
 
         except ImportError:
             # in this case cornice is not installed. We cannot use it
