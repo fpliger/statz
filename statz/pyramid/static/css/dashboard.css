@@ -8,11 +8,11 @@ body {
 }
 
 a {
-    color: #bc2131;
+    color: #453C4E;
 }
 
 a:hover {
-    color: #96000b;
+    color: #000000;
 }
 
 .navbar-collapse {
@@ -20,7 +20,7 @@ a:hover {
 }
 
 .navbar-inverse {
-    background: #bc2131;
+    background: #000000;
 }
 
 .navbar-inverse .navbar-brand, .navbar-inverse .navbar-nav > li > a {
@@ -29,7 +29,7 @@ a:hover {
 
 .navbar-inverse .navbar-nav > li.active > a,
 .navbar-inverse .navbar-nav > li.active:hover > a {
-    background-color: #96000b;
+    background-color: #260A36;
 }
 
 .navbar-brand:before {
@@ -40,6 +40,7 @@ a:hover {
 .navbar-brand {
     padding-left: 50px;
 }
+
 
 /*
  * Global add-ons
@@ -110,10 +111,25 @@ a:hover {
   .main {
     padding-left: 40px;
     padding-right: 40px;
+    margin-top: 30px;
   }
 }
 .main .page-header {
   margin-top: 0;
+}
+
+.nav{
+    max-height: 700px;
+    overflow-y:scroll;
+}
+
+.method-section{
+  padding-bottom: 20px;
+  padding-top: 40px;
+}
+
+.view-section{
+  padding-top: 50px;
 }
 
 
