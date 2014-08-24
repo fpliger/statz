@@ -45,15 +45,19 @@ class Tracker(object):
 
     def __init__(self, storage=None, config=None, active_loggers_str=None,
                  exclude_paths=None):
-        now = datetime.datetime.now()
-        self.session = now.strftime('%Y%m%d%H%M%S')
+        self.init_session_id()
 
+        # create stats dict to store live stats info about views
         self.stats = {}
+
+        # flag that indicates if routes have been loaded from config at least
+        # once
         self.loaded_routes = False
 
         self.activate_loggers(active_loggers_str)
         self.storage = storage or storages.MockStorage()
 
+        # if config has been passed we can use it to load all declared routes
         if config:
             self.load_routes_from_config(config)
 
@@ -61,6 +65,10 @@ class Tracker(object):
             paths = [x.strip() for x in exclude_paths.split(',')]
             self.exclude_paths = set(paths)
             self.exclude_paths = self.exclude_paths + set(Tracker.exclude_paths)
+
+    def init_session_id(self):
+        now = datetime.datetime.now()
+        self.session = now.strftime('%Y%m%d%H%M%S')
 
     def parse_loggers_str(self, loggers_config_str):
         """
