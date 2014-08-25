@@ -95,11 +95,13 @@ def test_parse_settings():
 
 test_records = [{'id': n, 'name': 'test task %i!!' % n} for n in range(5)]
 
-def create_app_config(tmpdir):
+def create_app_config(tmpdir, custom_settings=None):
     """
     Uses pyramid tasks tutorial as base to create a 'realistic-ish' app config
     to use for traditional pyramid app testings
     """
+    if custom_settings is None:
+        custom_settings = {}
 
     # define test app view functions
     # views
@@ -137,12 +139,12 @@ def create_app_config(tmpdir):
         request.response.status = '404 Not Found'
         return {}
 
-
     settings = {}
     settings['reload_all'] = True
     settings['debug_all'] = True
     settings['mako.directories'] = '%s' % tmpdir.join('templates')
     settings['statz.storage'] = "json://%s" % tmpdir
+    settings.update(custom_settings)
 
     # session factory
     session_factory = UnencryptedCookieSessionFactoryConfig('itsaseekreet')
@@ -185,11 +187,14 @@ class TestTracker(object):
         storage = sp.storages.load(
             'json://%s' % storage_path
         )
+        custom_settings = {
+            'statz.exclude_paths': '^/statics*, anystring, yetanotherregex%'
+        }
 
         # IMPORTANT: this method callse config.scan() to actually load views
         #            callables. This means that it would implicitly affect
         #            this teest results if we wouldn't have patched it
-        config = create_app_config(storage_path)
+        config = create_app_config(storage_path, custom_settings=custom_settings)
 
         # init a new tracker
         before = datetime.datetime.now()
@@ -210,6 +215,13 @@ class TestTracker(object):
 
         tracker.activate_loggers.assert_called_once_with(None)
         tracker.init_session_id.assert_called_once_with()
+
+        # assert that the excluded paths are the ones we have configured +
+        # the defaults for any statz app
+        assert tracker.excluded_paths == set([
+            '^/statics*', 'anystring', 'yetanotherregex%',
+            r"^/statz*", r"^statz*"
+        ])
 
 
 

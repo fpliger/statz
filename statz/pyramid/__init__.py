@@ -73,13 +73,16 @@ class Tracker(object):
         if overwrite_storage or not self.storage:
             self.create_storage_from_settings(config.registry.settings)
 
+        # define paths to exclude before loading routes so we know which ones
+        # to exclude
+        self.exclude_paths_from_settings(config.registry.settings)
+
         # finally get settings dict from the config object and load it's routes
         settings = config.registry.settings
         self.load_routes_from_config(config)
 
-
     def exclude_paths(self, paths):
-        self.excluded_paths = self.exclude_paths | set(path)
+        self.excluded_paths = self.excluded_paths | set(paths)
 
     def exclude_paths_from_settings(self, settings):
         excluded_paths = settings.get(
@@ -87,7 +90,7 @@ class Tracker(object):
             ''
         )
         if excluded_paths:
-            paths = [x.strip() for x in exclude_paths.split(',')]
+            paths = [x.strip() for x in excluded_paths.split(',')]
             self.exclude_paths(paths)
 
 
