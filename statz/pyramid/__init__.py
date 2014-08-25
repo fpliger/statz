@@ -67,6 +67,9 @@ class Tracker(object):
             self.exclude_paths = self.exclude_paths + set(Tracker.exclude_paths)
 
     def init_session_id(self):
+        """
+        Initializes the tracker session id number
+        """
         now = datetime.datetime.now()
         self.session = now.strftime('%Y%m%d%H%M%S')
 
