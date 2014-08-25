@@ -41,10 +41,9 @@ default_settings = [
 ]
 
 class Tracker(object):
-    exclude_paths = set([r"^/statz*", r"^statz*"])
+    default_excluded_paths = set([r"^/statz*", r"^statz*"])
 
-    def __init__(self, storage=None, config=None, active_loggers_str=None,
-                 exclude_paths=None):
+    def __init__(self, config=None, storage=None, active_loggers_str=None):
         self.init_session_id()
 
         # create stats dict to store live stats info about views
@@ -55,16 +54,47 @@ class Tracker(object):
         self.loaded_routes = False
 
         self.activate_loggers(active_loggers_str)
-        self.storage = storage or storages.MockStorage()
+
+        self.storage = storage
+        self.excluded_paths = set(Tracker.default_excluded_paths)
 
         # if config has been passed we can use it to load all declared routes
         if config:
-            self.load_routes_from_config(config)
+            self.init_from_config(config)
 
-        if exclude_paths:
+        # if the storage wasn't created explicitly from parameters of from the
+        # received config then we need to create a dummy storage
+        if not self.storage:
+            self.storage = storages.MockStorage()
+
+    def init_from_config(self, config, overwrite_storage=False):
+        # before any other thing we must check if the storage has been set
+        # otherwise we cannot load (and store) the routes from the config
+        if overwrite_storage or not self.storage:
+            self.create_storage_from_settings(config.registry.settings)
+
+        # finally get settings dict from the config object and load it's routes
+        settings = config.registry.settings
+        self.load_routes_from_config(config)
+
+
+    def exclude_paths(self, paths):
+        self.excluded_paths = self.exclude_paths | set(path)
+
+    def exclude_paths_from_settings(self, settings):
+        excluded_paths = settings.get(
+            '%s%s' % (SETTINGS_PREFIX, 'exclude_paths'),
+            ''
+        )
+        if excluded_paths:
             paths = [x.strip() for x in exclude_paths.split(',')]
-            self.exclude_paths = set(paths)
-            self.exclude_paths = self.exclude_paths + set(Tracker.exclude_paths)
+            self.exclude_paths(paths)
+
+
+    def create_storage_from_settings(self, settings):
+        self.storage = storages.load(
+            settings['%s%s' % (SETTINGS_PREFIX, 'storage')]
+        )
 
     def init_session_id(self):
         """
@@ -104,7 +134,7 @@ class Tracker(object):
         statistics must be registred or not. Method uses regex.match to check
         matches of path and configured paths to exclude in 'exclude_paths'
         """
-        for p in self.exclude_paths:
+        for p in self.excluded_paths:
             if re.match(p, path, re.M|re.I):
                 return False
 
@@ -515,8 +545,7 @@ def includeme(config):
     # the config file
     config.registry.settings.update(settings)
 
-    storage = storages.load(settings['%s%s' % (SETTINGS_PREFIX, 'storage')])
-    tracker = Tracker(storage=storage, config=config)
+    tracker = Tracker(config=config)
 
     # TODO: Need this? If so, should make it more pythonic...
     Board.default_folder = tracker.storage.url

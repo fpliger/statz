@@ -41,9 +41,6 @@ def test_includeme(monkeypatch):
     # asserts...
     sp.parse_settings.assert_called_one_with(fake_settings)
     config.registry.settings == extened_settings
-    sp.storages.load.assert_called_once_with(
-        fake_settings['statz.storage']
-    )
 
     # assert that the 2 functions that wrap pyramid request and responses
     # are being registered
@@ -145,7 +142,7 @@ def create_app_config(tmpdir):
     settings['reload_all'] = True
     settings['debug_all'] = True
     settings['mako.directories'] = '%s' % tmpdir.join('templates')
-    settings['statz.storage'] = "json://%s" % tmpdir.join('statz')
+    settings['statz.storage'] = "json://%s" % tmpdir
 
     # session factory
     session_factory = UnencryptedCookieSessionFactoryConfig('itsaseekreet')
@@ -197,7 +194,6 @@ class TestTracker(object):
         # init a new tracker
         before = datetime.datetime.now()
         tracker = sp.Tracker(
-            storage=storage,
             config=config,
         )
         after = datetime.datetime.now()
