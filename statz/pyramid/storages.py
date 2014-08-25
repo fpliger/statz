@@ -81,7 +81,7 @@ class JsonStorage(BaseStorage):
             return stats
 
         else:
-            return defaultdict(list)
+            return {}
 
 DEFAULT_STORAGE = JsonStorage
 STORAGES_MAP = {
