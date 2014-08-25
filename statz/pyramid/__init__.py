@@ -68,6 +68,16 @@ class Tracker(object):
             self.storage = storages.MockStorage()
 
     def init_from_config(self, config, overwrite_storage=False):
+        """
+        Inits storage, excluded_paths from configurations settings and
+        parses config to load all it's configured routes
+
+        Parameters:
+
+        config              ::: Pyramid config object
+        overwrite_storage   ::: (bool) if True forces to re-define the instance
+                                storage
+        """
         # before any other thing we must check if the storage has been set
         # otherwise we cannot load (and store) the routes from the config
         if overwrite_storage or not self.storage:
@@ -82,9 +92,31 @@ class Tracker(object):
         self.load_routes_from_config(config)
 
     def exclude_paths(self, paths):
+        """
+        Adds the specified paths to the tracker excluded paths
+
+        Parameters:
+
+        paths   ::: (iterable) list (or any iterable) of path strings that must
+                    be excluded when tracker intercepts and saves into about a
+                    new request/response
+        """
         self.excluded_paths = self.excluded_paths | set(paths)
 
     def exclude_paths_from_settings(self, settings):
+        """
+        Searches for statz specific excluded_paths key on a settings dictionary.
+        If the statz.excluded_paths key is found it is used to add those paths
+        to the tracker excluded paths.
+
+        Parameters:
+
+        settings    ::: configuration dictionary
+
+                        i.e.:
+                        {'statz.exclude_paths': ''^/statics*, anystring''}
+
+        """
         excluded_paths = settings.get(
             '%s%s' % (SETTINGS_PREFIX, 'exclude_paths'),
             ''
@@ -95,6 +127,20 @@ class Tracker(object):
 
 
     def create_storage_from_settings(self, settings):
+        """
+        Searches for statz specific storage definition on a settings dictionary
+        If the statz.storage key is found it is used to configure the tracker
+        storage object.
+
+        Parameters:
+
+        settings    ::: configuration dictionary
+                        i.e.:
+                        {'statz.storage': 'json:///some/path/'}
+
+
+
+        """
         self.storage = storages.load(
             settings['%s%s' % (SETTINGS_PREFIX, 'storage')]
         )
