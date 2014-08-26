@@ -158,6 +158,7 @@ def create_app_config(tmpdir, custom_settings=None):
 
     # routes setup
     config.add_route('list', '/')
+    config.add_view(list_view, route_name='list')
     config.add_route('new', '/new')
     config.add_route('close', '/close/{id}')
 
@@ -203,11 +204,6 @@ class TestTracker(object):
         )
         after = datetime.datetime.now()
 
-        # check that the application routes have been detected and saved
-        assert 'ROOT' in tracker.stats
-        assert 'new' in tracker.stats
-        assert 'close__id' in tracker.stats
-
         # Check that the storage has been created and it's correct
         assert tracker.storage
         assert isinstance(tracker.storage, sp.storages.JsonStorage)
@@ -223,5 +219,54 @@ class TestTracker(object):
             r"^/statz*", r"^statz*"
         ])
 
+        # check that the application routes have been detected and saved
+        assert 'ROOT' in tracker.stats
+        assert 'new' in tracker.stats
+        assert 'close__id' in tracker.stats
 
+        # now let's check all the details of each path..
+
+        # ROOT path..
+        sstats = tracker.stats['ROOT']
+
+        assert sstats['url'] == '/'
+        assert 'ALL' in sstats['methods']
+
+        source = '''    @view_config(route_name='list', renderer='list.mako')
+    def list_view(request):
+        """
+        Lists all open tasks
+        """
+        return {'tasks': test_records}
+'''
+        all_meths = sstats['methods']['ALL']
+        source = sp.highlight(source, sp.PythonLexer(), sp.HtmlFormatter())
+        assert source == all_meths['code']
+        assert all_meths['docstring'] == sp.converters.format_paragraphs(
+            "Lists all open tasks", True
+        )
+        assert all_meths['calls'] == []
+        assert all_meths['callable'] == 'list_view'
+
+        # new path
+        sstats = tracker.stats['new']
+
+        assert sstats['url'] == '/'
+        assert 'ALL' in sstats['methods']
+
+        source = '''    @view_config(route_name='list', renderer='list.mako')
+    def list_view(request):
+        """
+        Lists all open tasks
+        """
+        return {'tasks': test_records}
+'''
+        all_meths = sstats['methods']['ALL']
+        source = sp.highlight(source, sp.PythonLexer(), sp.HtmlFormatter())
+        assert source == all_meths['code']
+        assert all_meths['docstring'] == sp.converters.format_paragraphs(
+            "Lists all open tasks", True
+        )
+        assert all_meths['calls'] == []
+        assert all_meths['callable'] == 'list_view'
 

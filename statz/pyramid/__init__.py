@@ -292,9 +292,9 @@ class Tracker(object):
 
                     if rel['request_methods']:
                         path_stats['methods'][rel['request_methods']] = {
-                            'code':inspect.getsource(foo),
+                            'code': source,
                             'docstring': docstring,
-                            'callable': '',
+                            'callable': foo.__name__,
                             'calls': []
                         }
 
@@ -306,7 +306,7 @@ class Tracker(object):
                         path_stats['methods']['ALL'] = {
                             'code': source,
                             'docstring': docstring,
-                            'callable': '',
+                            'callable': foo.__name__,
                             'calls': []
                         }
 
@@ -451,7 +451,7 @@ class Tracker(object):
                         meth: {
                             'code':'',
                             'docstring': 'PATH MISSED FROM AUTODISCOVER',
-                            'callable': '',
+                            'callable': '---',
                             'calls': [],
                             'headers': '',
                         },
