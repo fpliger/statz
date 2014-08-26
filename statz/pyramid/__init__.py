@@ -58,6 +58,9 @@ class Tracker(object):
         self.storage = storage
         self.excluded_paths = set(Tracker.default_excluded_paths)
 
+        print "PATHS", self.excluded_paths
+
+
         # if config has been passed we can use it to load all declared routes
         if config:
             self.init_from_config(config)
@@ -66,6 +69,9 @@ class Tracker(object):
         # received config then we need to create a dummy storage
         if not self.storage:
             self.storage = storages.MockStorage()
+
+        print "PATHS2", self.excluded_paths
+
 
     def init_from_config(self, config, overwrite_storage=False):
         """
@@ -101,7 +107,7 @@ class Tracker(object):
                     be excluded when tracker intercepts and saves into about a
                     new request/response
         """
-        self.excluded_paths = self.excluded_paths | set(paths)
+        self.excluded_paths.update(paths)
 
     def exclude_paths_from_settings(self, settings):
         """
@@ -473,9 +479,14 @@ class Tracker(object):
 
             self._handle_new_response(event, call_stats)
 
-            calls = path_stats['methods'][meth]['calls']
-            calls.append(call_stats)
-            path_stats['methods'][meth]['calls'] = calls
+            try:
+                calls = path_stats['methods'][meth]['calls']
+                calls.append(call_stats)
+                path_stats['methods'][meth]['calls'] = calls
+
+            except KeyError:
+                pdb.settrace()
+                #pass
 
             self.stats[nurl] = path_stats
             self.storage.save(nurl, path_stats)
