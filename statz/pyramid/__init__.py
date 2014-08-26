@@ -215,14 +215,15 @@ class Tracker(object):
                         - calls     ::: list that contains tracked calls for
                                         that specific METHOD and URL
         """
-        url = serv.path
+        #url = serv.path
         nurl = self.normalize_url(url)
 
         if self.take_path(url):
 
             # load any previously saved stats for this route or initialize
             # a new stats dictionary
-            path_stats = self.storage.load(nurl)
+            if not path_stats:
+                path_stats = self.storage.load(nurl)
 
             if not 'url' in path_stats:
                 path_stats['url'] = path
@@ -326,7 +327,7 @@ class Tracker(object):
                 if self.take_path(path):
                     # Parse the cornice service again to update service info
                     # if there was any change to the code or docstrings
-                    self.parse_cornice_service(path, serv, path_stats)
+                    self.parse_cornice_service(path, serv)
 
         except ImportError:
             # in this case cornice is not installed. We cannot use it
