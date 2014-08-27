@@ -247,11 +247,12 @@ class Tracker(object):
                 source = inspect.getsource(foo)
                 source = highlight(source, PythonLexer(), HtmlFormatter())
 
-                psts[method] = {
+                psts_meth = psts.get(method, {'calls': []})
+
+                psts_meth = {
                     'docstring': docstring,
                     'callable': '%s.%s' % (args['klass'], view),
-                    'code': source,
-                    'calls': []
+                    'code': source
                 }
 
                 self.storage.save(nurl, path_stats)
