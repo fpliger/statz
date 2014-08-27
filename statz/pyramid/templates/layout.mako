@@ -55,14 +55,20 @@
     <div class="container-fluid main">
       <div class="row">
         <div class="col-md-2">
-          <ul class="nav nav-sidebar affix">
-            <li class="active"><a href="#">Calls</a></li>
-              <ul class="nav">
-                  % for url, route in routes.items():
-                    <li><a href="#${url}">${route.get('url', url.replace('_', '/'))}</a></li>
-                  % endfor
-              </ul>
+          <div class="bs-docs-sidebar hidden-print hidden-xs hidden-sm affix" role="complementary">
+              <ul class="nav bs-docs-sidenav">
+              % for url, route in routes.items():
+                <li>
+                    <a href="#${url}">${route.get('url', url.replace('_', '/'))}</a>
+                    <div>
+                            %for methname, info in route.get('methods', {}).items():
+                            <a href="#${url}_${methname}"><span class="badge">${methname}</span></a>
+                            %endfor
+                    </div>
+                </li>
+              % endfor
           </ul>
+          </div>
         </div>
         <div class="col-lg-10 col-md-0">
             <div class="panel panel-default">
