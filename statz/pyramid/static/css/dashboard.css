@@ -8,11 +8,11 @@ body {
 }
 
 .main {
-  padding: 0px 20px 20px 20px;
+  padding: 0px 20px 20px 10px;
 }
 @media (min-width: 768px) {
   .main {
-    padding-left: 40px;
+    padding-left: 10px;
     padding-right: 40px;
     margin-top: 30px;
   }
@@ -116,7 +116,7 @@ body {
 
 /* sidebar */
 .bs-docs-sidebar {
-    padding-left: 20px;
+    padding-left: 0px;
     margin-top: 20px;
     margin-bottom: 20px;
 }

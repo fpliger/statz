@@ -24,7 +24,7 @@
       <script src="https://oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>
     <![endif]-->
 
-    
+
     <script src="http://d3js.org/d3.v3.min.js" charset="utf-8"></script>
     <script src="http://d3js.org/topojson.v1.min.js"></script>
     <script src="http://d3js.org/d3.geo.projection.v0.min.js" charset="utf-8"></script>
@@ -74,7 +74,6 @@
                         <li><a href="#${url}_${methname}">${methname}</a></li>
                         %endfor
                     </ul>
-
 
                 </li>
               % endfor
