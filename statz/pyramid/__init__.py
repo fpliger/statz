@@ -449,6 +449,9 @@ class Tracker(object):
                 path_stats = self.storage.load(nurl)
                 path_stats['url'] = url
 
+            if not 'methods' in path_stats:
+                path_stats['methods'] = {}
+
             if not meth in path_stats['methods']:
                 if 'ALL' in path_stats['methods']:
                     meth = 'ALL'
@@ -485,8 +488,7 @@ class Tracker(object):
                 path_stats['methods'][meth]['calls'] = calls
 
             except KeyError:
-                pdb.settrace()
-                #pass
+                print "OOOOOPS, something went wrong registering", meth, url
 
             self.stats[nurl] = path_stats
             self.storage.save(nurl, path_stats)
