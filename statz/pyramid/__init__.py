@@ -535,6 +535,22 @@ class Board(object):
             return val
 
         print HtmlFormatter().get_style_defs('.highlight')
+        #
+        #import vincent
+        #
+        ##Dicts of iterables
+        #cat_1 = ['y1', 'y2', 'y3', 'y4']
+        #index_1 = range(0, 21, 1)
+        #multi_iter1 = {'index': index_1}
+        #for cat in cat_1:
+        #    multi_iter1[cat] = [random.randint(10, 100) for x in index_1]
+        #
+        #list_data = [10, 20, 30, 20, 15, 30, 45]
+        #line = vincent.Line(list_data)
+        #line.axis_titles(x='Index', y='Value')
+
+        #import pdb
+        #pdb.set_trace()
 
         return {
             'routes': self.routes,
