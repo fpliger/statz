@@ -29,8 +29,9 @@ from pygments import highlight
 from pygments.lexers import PythonLexer
 from pygments.formatters import HtmlFormatter
 
+here = local(storages.__file__).dirpath()
 SETTINGS_PREFIX = 'statz.'
-STATIC_PATH = '/Users/fpliger/dev/repos/statz/statz/pyramid/static'
+STATIC_PATH = here.join('static')
 DEFAULT_LOGGERS = 'MemoryLogger, TrafficLogger'
 
 default_settings = [
@@ -534,28 +535,11 @@ class Board(object):
 
             return val
 
-        print HtmlFormatter().get_style_defs('.highlight')
-        #
-        #import vincent
-        #
-        ##Dicts of iterables
-        #cat_1 = ['y1', 'y2', 'y3', 'y4']
-        #index_1 = range(0, 21, 1)
-        #multi_iter1 = {'index': index_1}
-        #for cat in cat_1:
-        #    multi_iter1[cat] = [random.randint(10, 100) for x in index_1]
-        #
-        #list_data = [10, 20, 30, 20, 15, 30, 45]
-        #line = vincent.Line(list_data)
-        #line.axis_titles(x='Index', y='Value')
-
-        #import pdb
-        #pdb.set_trace()
-
         return {
             'routes': self.routes,
             'fmt': fmt,
             'render_key_value_table': render_key_value_table,
+            'render_stats_plot': render_stats,
         }
 
     def export(self, path, exclude_keys=None):
@@ -635,7 +619,7 @@ def includeme(config):
     config.add_subscriber(tracker.handle_new_request, NewRequest)
 
     # add views that can be used to read collected info
-    config.add_static_view('statz/static', STATIC_PATH)
+    config.add_static_view('statz/static', str(STATIC_PATH))
     config.add_route('statzboard', '/statzboard',)
 
     config.scan('statz.pyramid')
@@ -684,3 +668,16 @@ def render_key_value_table(id, values, klass="table table-striped", style="displ
 def render_table_value(val):
     #TODO: make this function handle list values so it returns a summary version of the value
     return val
+
+def render_stats(url, stats, method):
+    import vincent
+
+    if 'calls' in stats:
+        calls = stats['calls']
+        data = [x['duration'] for x in calls]
+
+        if data:
+            line = vincent.Line(data)
+            line.axis_titles(x='%s %s' % (method, x['url']), y='Duration')
+            filepath = STATIC_PATH.join("assets", "%s_%s.json" % (method, url))
+

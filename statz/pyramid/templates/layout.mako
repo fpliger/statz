@@ -198,7 +198,7 @@
                                     %endfor
                                   </tbody>
                                 </table>
-
+                                    ${render_stats_plot(url, info, methname) | u}
                                  <div id="vis_${url}_${methname}" class="vis"></div>
                               </div>
                        %endif
@@ -234,6 +234,11 @@ $('body').scrollspy({
 function parse(spec) {
   vg.parse.spec(spec, function(chart) { chart({el:".vis"}).update(); });
 }
-parse("/statz/static/assets/line.json");
+
+% for url, route in routes.items():
+    %for methname, info in route.get('methods', {}).items():
+parse("/statz/static/assets/${methname}_${url}.json");
+    %endfor
+% endfor
 </script>
 </html>
