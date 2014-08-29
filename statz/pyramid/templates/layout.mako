@@ -61,14 +61,14 @@
               <ul class="nav nav-stacked bs-docs-sidenav">
               % for url, route in routes.items():
                 <li>
-                    <a href="#${url}">${route.get('url', url.replace('_', '/'))}</a>
-                    <!--
-                    <div>
-                            %for methname, info in route.get('methods', {}).items():
-                            <a href="#${url}_${methname}"><span class="badge">${methname}</span></a>
-                            %endfor
-                    </div>
-                    -->
+                    <a href="#${url}">
+
+                        %if route.get('methods_with_stats', []):
+                            *
+                        %endif
+                        ${route.get('url', url.replace('_', '/'))}
+                    </a>
+
                     <ul class="nav nav-stacked" >
                         %for methname, info in route.get('methods', {}).items():
                         <li><a href="#${url}_${methname}">${methname}</a></li>
@@ -95,27 +95,10 @@
 
                                 <div class="btn-group">
 
-                                   %for methname in route.get('methods', []):
+                                   %for methname, info in route.get('methods', {}).items():
                                     <a type="button" class="btn btn-default" href="#${url}_${methname}">${methname}</a>
                                    %endfor
 
-                                    %if route.get('calls', []):
-                                    <button type="button" class="btn btn-default" onclick="$('#table_${url}').toggle();">Show/Hide</button>
-
-
-                                  <div class="btn-group">
-                                    <button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown">
-                                      Dropdown
-                                      <span class="caret"></span>
-                                    </button>
-                                    <ul class="dropdown-menu" role="menu">
-                                        %for k in route:
-                                            <li><a href="#">${k}</a></li>
-                                        %endfor
-                                    </ul>
-                                  </div>
-
-                                    %endif
                                 </div>
                                 </span>
 
