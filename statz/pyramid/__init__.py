@@ -59,9 +59,6 @@ class Tracker(object):
         self.storage = storage
         self.excluded_paths = set(Tracker.default_excluded_paths)
 
-        print "PATHS", self.excluded_paths
-
-
         # if config has been passed we can use it to load all declared routes
         if config:
             self.init_from_config(config)
@@ -70,9 +67,6 @@ class Tracker(object):
         # received config then we need to create a dummy storage
         if not self.storage:
             self.storage = storages.MockStorage()
-
-        print "PATHS2", self.excluded_paths
-
 
     def init_from_config(self, config, overwrite_storage=False):
         """
@@ -233,10 +227,11 @@ class Tracker(object):
                 path_stats = self.storage.load(nurl)
 
             if not 'url' in path_stats:
-                path_stats['url'] = path
+                path_stats['url'] = url
 
             if not 'methods' in path_stats:
                 path_stats['methods'] = {}
+                path_stats['methods_with_stats'] = []
 
             psts = path_stats['methods']
             for (method, view, args) in serv.definitions:
@@ -250,16 +245,19 @@ class Tracker(object):
 
                 psts_meth = psts.get(method, {'calls': []})
 
-                psts_meth = {
+                psts_meth.update({
                     'docstring': docstring,
                     'callable': '%s.%s' % (args['klass'], view),
                     'code': source
-                }
+                })
+                psts[method] = psts_meth
 
-                self.storage.save(nurl, path_stats)
+                print psts
 
-                # Add the path to the current global live stats
-                self.stats[nurl] = path_stats
+            self.storage.save(nurl, path_stats)
+
+            # Add the path to the current global live stats
+            self.stats[nurl] = path_stats
 
 
     def load_route(self, route):
@@ -286,6 +284,7 @@ class Tracker(object):
 
                 if not 'methods' in path_stats:
                     path_stats['methods'] = {}
+                    path_stats['methods_with_stats'] = []
 
                 for rel in route['related']:
                     foo = rel['callable']
@@ -453,6 +452,7 @@ class Tracker(object):
 
             if not 'methods' in path_stats:
                 path_stats['methods'] = {}
+                path_stats['methods_with_stats'] = []
 
             if not meth in path_stats['methods']:
                 if 'ALL' in path_stats['methods']:
@@ -488,6 +488,9 @@ class Tracker(object):
                 calls = path_stats['methods'][meth]['calls']
                 calls.append(call_stats)
                 path_stats['methods'][meth]['calls'] = calls
+
+                if not meth in path_stats['methods_with_stats']:
+                    path_stats['methods_with_stats'].append(meth)
 
             except KeyError:
                 print "OOOOOPS, something went wrong registering", meth, url
