@@ -236,12 +236,20 @@ class Tracker(object):
             psts = path_stats['methods']
             for (method, view, args) in serv.definitions:
                 foo = getattr(args['klass'], view)
-                docstring = converters.format_paragraphs(
-                            inspect.getdoc(foo), True
-                        )
 
-                source = inspect.getsource(foo)
-                source = highlight(source, PythonLexer(), HtmlFormatter())
+                try:
+                    docstring = converters.format_paragraphs(
+                                inspect.getdoc(foo), True
+                            )
+                except:
+                    docstring = ''
+
+                try:
+                    source = inspect.getsource(foo)
+                    source = highlight(source, PythonLexer(), HtmlFormatter())
+
+                except:
+                    source = ''
 
                 psts_meth = psts.get(method, {'calls': []})
 
@@ -251,8 +259,6 @@ class Tracker(object):
                     'code': source
                 })
                 psts[method] = psts_meth
-
-                print psts
 
             self.storage.save(nurl, path_stats)
 
