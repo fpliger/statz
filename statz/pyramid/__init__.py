@@ -421,7 +421,8 @@ class Tracker(object):
         req = event.request
         _id = repr(req)
         if _id in self.stats:
-            raise EnvironmentError('Duplicated request!')
+            print "OOOOOPS, DUPLICATED REQUEST!!"
+            #raise EnvironmentError('Duplicated request!')
 
         call_stats = {}
 
@@ -479,7 +480,8 @@ class Tracker(object):
                     (time.time() - call_stats['timestamp']) * 1000
 
             # track response json_body if content-type is json
-            if 'json' in event.response.content_type:
+            content_type = event.response.content_type or ''
+            if 'json' in content_type:
                 try:
                     call_stats['response_json_body'] = event.response.json_body
 
@@ -681,6 +683,7 @@ def render_table_value(val):
 def render_stats(url, stats, method):
     import vincent
 
+    txt = ''
     if 'calls' in stats:
         calls = stats['calls']
         data = [x['duration'] for x in calls]
@@ -689,4 +692,11 @@ def render_stats(url, stats, method):
             line = vincent.Line(data)
             line.axis_titles(x='%s %s' % (method, x['url']), y='Duration')
             filepath = STATIC_PATH.join("assets", "%s_%s.json" % (method, url))
+            line.to_json(str(filepath))
+
+        txt = """
+    <div id="vis_%(url)s_%(method)s" class="vis"></div>
+
+    """ % locals()
+    return txt
 

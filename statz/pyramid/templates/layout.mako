@@ -181,16 +181,13 @@
                                     %endfor
                                   </tbody>
                                 </table>
-                                    ${render_stats_plot(url, info, methname) | u}
-                                 <div id="vis_${url}_${methname}" class="vis"></div>
+                                    ${render_stats_plot(url, info, methname) | n}
                               </div>
                        %endif
 
                     </div>
 
-                    %endfor
-
-
+                        %endfor
                       %endfor
                   </div>
             </div>
@@ -208,20 +205,33 @@
 
 <script type="text/javascript">
 
+// Enable bootstrap scroll
 $('body').scrollspy({
     target: '.bs-docs-sidebar',
     offset: 40
 });
 
 // parse a spec and create a visualization view
-function parse(spec) {
-  vg.parse.spec(spec, function(chart) { chart({el:".vis"}).update(); });
+function parse(spec, url, methname) {
+  vg.parse.spec(spec, function(chart) { chart({el:"#vis_"+url+"_"+methname}).update(); });
 }
 
-% for url, route in routes.items():
-    %for methname, info in route.get('methods', {}).items():
-parse("/statz/static/assets/${methname}_${url}.json");
-    %endfor
-% endfor
+$('.vis').each(function(i, obj) {
+    var elms = obj.id.split("_");
+    var url = "";
+
+    for (i = 1; i < elms.length - 1; i++) {
+        if (i==1){
+            url += elms[i];
+        }else{
+            url += "_" + elms[i];
+        }
+
+    }
+    var method = elms[elms.length - 1];
+
+    parse("/statz/static/assets/"+method+"_"+url+".json", url, method);
+});
+
 </script>
 </html>
