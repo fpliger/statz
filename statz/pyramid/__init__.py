@@ -641,7 +641,7 @@ def includeme(config):
     # TODO: We should create a brand new application that self contains statz
 
 
-def render_key_value_table(id, values, klass="table table-striped", style="display:none;"):
+def render_key_value_table(id, values, klass="table table-striped", style=""):
     templ = u"""
 <table id="%(id)s" class="%(klass)s" style="%(style)s">
   <thead>
@@ -675,6 +675,25 @@ def render_key_value_table(id, values, klass="table table-striped", style="displ
     table = templ % locals()
 
     return table
+
+def render_key_value_table_section(id_root,
+                                   values,
+                                   section_title = "",
+                                   table_class="table table-striped",
+                                   style="display:none;"):
+    templ = u"""
+<div id="table_%(id_root)s"  style="%(style)s">
+    <h4>%(section_title)s</h4>
+    %(table_html)s
+</div>
+"""
+    table_html = render_key_value_table(
+        "inner_table_%s" % id_root,
+        values,
+    )
+    txt = templ % locals()
+
+    return txt
 
 def render_table_value(val):
     #TODO: make this function handle list values so it returns a summary version of the value

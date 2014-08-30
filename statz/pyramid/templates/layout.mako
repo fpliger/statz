@@ -143,7 +143,6 @@
 
                              <div id="table_${url}_${methname}_params"  style="display:none;">
                                 <h4>Parameters:</h4>
-
                                  ${render_key_value_table("inner_table_" + url + "_" + methname + "_params", info['calls'][-1]['request_params'], style="") | n}
                              </div>
 

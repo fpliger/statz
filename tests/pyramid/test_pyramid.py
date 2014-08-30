@@ -160,7 +160,9 @@ def create_app_config(tmpdir, custom_settings=None):
     config.add_route('list', '/')
     config.add_view(list_view, route_name='list')
     config.add_route('new', '/new')
+    config.add_view(new_view, route_name='new')
     config.add_route('close', '/close/{id}')
+    config.add_view(close_view, route_name='close')
 
     # static view setup
     config.add_static_view('static', '%s' % tmpdir.join('static'))
@@ -227,46 +229,63 @@ class TestTracker(object):
         # now let's check all the details of each path..
 
         # ROOT path..
-        sstats = tracker.stats['ROOT']
-
-        assert sstats['url'] == '/'
-        assert 'ALL' in sstats['methods']
-
-        source = '''    @view_config(route_name='list', renderer='list.mako')
-    def list_view(request):
-        """
-        Lists all open tasks
-        """
-        return {'tasks': test_records}
-'''
-        all_meths = sstats['methods']['ALL']
-        source = sp.highlight(source, sp.PythonLexer(), sp.HtmlFormatter())
-        assert source == all_meths['code']
-        assert all_meths['docstring'] == sp.converters.format_paragraphs(
-            "Lists all open tasks", True
-        )
-        assert all_meths['calls'] == []
-        assert all_meths['callable'] == 'list_view'
+        check_list_view(tracker)
 
         # new path
-        sstats = tracker.stats['new']
+        check_new_path(tracker)
 
-        assert sstats['url'] == '/'
-        assert 'ALL' in sstats['methods']
 
-        source = '''    @view_config(route_name='list', renderer='list.mako')
+def check_list_view(tracker):
+    sstats = tracker.stats['ROOT']
+
+    assert sstats['url'] == '/'
+    assert 'ALL' in sstats['methods']
+
+    source = '''    @view_config(route_name='list', renderer='list.mako')
     def list_view(request):
         """
         Lists all open tasks
         """
         return {'tasks': test_records}
 '''
-        all_meths = sstats['methods']['ALL']
-        source = sp.highlight(source, sp.PythonLexer(), sp.HtmlFormatter())
-        assert source == all_meths['code']
-        assert all_meths['docstring'] == sp.converters.format_paragraphs(
-            "Lists all open tasks", True
-        )
-        assert all_meths['calls'] == []
-        assert all_meths['callable'] == 'list_view'
+    all_meths = sstats['methods']['ALL']
+    source = sp.highlight(source, sp.PythonLexer(), sp.HtmlFormatter())
+    assert source == all_meths['code']
+    assert all_meths['docstring'] == sp.converters.format_paragraphs(
+        "Lists all open tasks", True
+    )
+    assert all_meths['calls'] == []
+    assert all_meths['callable'] == 'list_view'
 
+
+def check_new_path(tracker):
+    sstats = tracker.stats['new']
+
+    assert sstats['url'] == '/new'
+    assert 'ALL' in sstats['methods']
+
+    source = '''    @view_config(route_name='new', renderer='new.mako')
+    def new_view(request):
+        """
+        Creates a new task.
+
+        Parameters:
+
+        name ::: (string) text describing the task
+        """
+        return {'tasks': test_records}
+'''
+    all_meths = sstats['methods']['ALL']
+    source = sp.highlight(source, sp.PythonLexer(), sp.HtmlFormatter())
+    assert source == all_meths['code']
+
+    docstring = """Creates a new task.
+
+Parameters:
+
+name ::: (string) text describing the task"""
+    assert all_meths['docstring'] == sp.converters.format_paragraphs(
+        docstring, True
+    )
+    assert all_meths['calls'] == []
+    assert all_meths['callable'] == 'new_view'
