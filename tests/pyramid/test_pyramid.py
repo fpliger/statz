@@ -234,6 +234,9 @@ class TestTracker(object):
         # new path
         check_new_path(tracker)
 
+        # close path
+        check_close_path(tracker)
+
 
 def check_list_view(tracker):
     sstats = tracker.stats['ROOT']
@@ -256,7 +259,6 @@ def check_list_view(tracker):
     )
     assert all_meths['calls'] == []
     assert all_meths['callable'] == 'list_view'
-
 
 def check_new_path(tracker):
     sstats = tracker.stats['new']
@@ -289,3 +291,28 @@ name ::: (string) text describing the task"""
     )
     assert all_meths['calls'] == []
     assert all_meths['callable'] == 'new_view'
+
+def check_close_path(tracker):
+    sstats = tracker.stats['close__id']
+
+    assert sstats['url'] == '/close/{id}'
+    assert 'ALL' in sstats['methods']
+
+    source = '''    @view_config(route_name='close')
+    def close_view(request):
+        """
+        Closes a task
+        """
+        # this is a very dummy test fixture...
+        return []
+'''
+    all_meths = sstats['methods']['ALL']
+    source = sp.highlight(source, sp.PythonLexer(), sp.HtmlFormatter())
+    assert source == all_meths['code']
+
+    docstring = """Closes a task"""
+    assert all_meths['docstring'] == sp.converters.format_paragraphs(
+        docstring, True
+    )
+    assert all_meths['calls'] == []
+    assert all_meths['callable'] == 'close_view'
